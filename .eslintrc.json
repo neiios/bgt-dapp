@@ -15,5 +15,11 @@
     "sourceType": "module"
   },
   "plugins": ["react", "prettier"],
-  "rules": { "prettier/prettier": 2 }
+  "ignorePatterns": ["*.config.cjs"],
+  "rules": { "prettier/prettier": 2, "no-unused-vars": "warn" },
+  "settings": {
+    "react": {
+      "version": "detect"
+    }
+  }
 }
