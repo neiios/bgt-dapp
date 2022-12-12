@@ -5,13 +5,12 @@ contract OpenAuction {
     // parameters (time in unix epoch seconds)
     address payable public beneficiary;
     uint public auctionEndTime;
+    uint public blockTimestamp;
 
     // current state of auction
     address payable public highestBidder;
     uint public highestBid;
-
-    mapping(address => uint) pendingReturns;
-    bool ended = false;
+    bool public ended = false;
 
     // events that will be emitted on changes.
     event HighestBidIncreased(address bidder, uint amount);
@@ -37,6 +36,7 @@ contract OpenAuction {
     ) {
         beneficiary = beneficiaryAddress;
         auctionEndTime = block.timestamp + biddingTime;
+        blockTimestamp = block.timestamp;
     }
 
     /// Bid on the auction with the value sent
