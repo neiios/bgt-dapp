@@ -15,7 +15,12 @@
     "sourceType": "module"
   },
   "plugins": ["react", "prettier"],
-  "ignorePatterns": ["*.config.cjs"],
+  "ignorePatterns": [
+    "*config.cjs",
+    "truffle-config.js",
+    "contracts",
+    "migrations"
+  ],
   "rules": { "prettier/prettier": 2, "no-unused-vars": "warn" },
   "settings": {
     "react": {
