@@ -3,9 +3,12 @@ pragma solidity >=0.8.0;
 
 contract OpenAuction {
     // parameters (time in unix epoch seconds)
-    address payable public beneficiary;
-    uint public auctionEndTime;
-    uint public blockTimestamp;
+    address payable beneficiary;
+    uint auctionEndTime;
+    uint blockTimestamp;
+    string title;
+    string description;
+    string url;
 
     // current state of auction
     address payable public highestBidder;
@@ -32,11 +35,17 @@ contract OpenAuction {
     /// beneficiary address `beneficiaryAddress`.
     constructor(
         uint biddingTime,
-        address payable beneficiaryAddress
+        address payable beneficiaryAddress,
+        string memory titleArg,
+        string memory descriptionArg,
+        string memory urlArg
     ) {
         beneficiary = beneficiaryAddress;
         auctionEndTime = block.timestamp + biddingTime;
         blockTimestamp = block.timestamp;
+        title = titleArg;
+        description = descriptionArg;
+        url = urlArg;
     }
 
     /// Bid on the auction with the value sent
@@ -70,6 +79,33 @@ contract OpenAuction {
         ended = true;
         emit AuctionEnded(highestBidder, highestBid);
 
-        beneficiary.transfer(highestBid);
+        // beneficiary.transfer(highestBid);
+        // destroy the contract and send money to beneficiary
+        selfdestruct(beneficiary);
+    }
+
+    // getters
+    function getTitle() public view returns (string memory) {
+        return title;
+    }
+
+    function getDescription() public view returns (string memory) {
+        return description;
+    }
+
+    function getUrl() public view returns (string memory) {
+        return url;
+    }
+
+    function getBeneficiary() public view returns (address) {
+        return beneficiary;
+    }
+
+    function getAuctionEndTime() public view returns (uint) {
+        return auctionEndTime;
+    }
+
+    function getBlockTimestamp() public view returns (uint) {
+        return blockTimestamp;
     }
 }
