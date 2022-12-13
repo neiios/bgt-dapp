@@ -21,7 +21,11 @@
     "contracts",
     "migrations"
   ],
-  "rules": { "prettier/prettier": 2, "no-unused-vars": "warn" },
+  "rules": {
+    "prettier/prettier": 2,
+    "no-unused-vars": "warn",
+    "react/prop-types": "off"
+  },
   "settings": {
     "react": {
       "version": "detect"
