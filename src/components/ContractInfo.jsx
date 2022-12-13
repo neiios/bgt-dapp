@@ -1,15 +1,17 @@
 import { useEffect, useState } from "react";
 import Web3 from "web3";
-import contract from "../helpers/loadContract";
+import createContract from "../helpers/loadContract";
 import InfoContainer from "./InfoContainer";
 import { convertUnixTime } from "../helpers/helpers";
 
-import { faCheck } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import logo from "../public/logo.svg";
+
+// toasts
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function ContractInfo() {
   // contract information
-  const [error, setError] = useState("");
   const [metamaskConnected, setMetamaskConnected] = useState(false);
 
   const [beneficiary, setBeneficiary] = useState("");
@@ -26,25 +28,30 @@ export default function ContractInfo() {
 
   const [userBalance, setUserBalance] = useState("");
 
-  // web3 instance
-  let web3;
+  const [bid, setBid] = useState(0);
+  const [web3, setWeb3] = useState(null);
+  const [account, setAccount] = useState(null);
+  const [contract, setContract] = useState(null);
+  const [counter, setCounter] = useState(0);
 
   async function connectWalletHandler() {
+    // check if metamask is available
     if (typeof window.ethereum !== "undefined") {
       try {
+        // request wallet connection
         await window.ethereum.request({ method: "eth_requestAccounts" });
-        web3 = new Web3(window.ethereum);
-        setError("");
-        setMetamaskConnected(true);
-        setUserBalance(
-          await web3.utils.fromWei(
-            await web3.eth.getBalance(
-              "0x7f5BBD37Ba943F14E237405308F564e965aAaCe0"
-            )
-          )
-        );
+        let web3Local = new Web3(window.ethereum);
+        setWeb3(web3Local);
+
+        const accounts = await web3.eth.getAccounts();
+        setAccount(accounts[0]);
+
+        const c = createContract(web3);
+        setContract(c);
       } catch (err) {
-        setError(err.message);
+        toast.error(err, {
+          position: toast.POSITION.BOTTOM_RIGHT,
+        });
       }
     } else {
       // metamask not installed
@@ -52,9 +59,25 @@ export default function ContractInfo() {
     }
   }
 
+  async function updateThings() {
+    async function setBalance() {
+      let balanceInWei = await web3.eth.getBalance(account);
+      let balance = await web3.utils.fromWei(balanceInWei);
+      setUserBalance(parseFloat(balance).toFixed(3));
+    }
+    if (contract) {
+      getContractInfo();
+    }
+    if (contract && account) {
+      setMetamaskConnected(true);
+      setBalance();
+    }
+  }
+
+  // useEffect(() => {}, [contract, account]);
   useEffect(() => {
-    getContractInfo();
-  }, []);
+    updateThings();
+  }, [account, contract, counter]);
 
   async function getContractInfo() {
     const title = await contract.methods.title().call();
@@ -64,7 +87,8 @@ export default function ContractInfo() {
     const imageUrl = await contract.methods.url().call();
     setImageUrl(imageUrl);
 
-    const highestBid = await contract.methods.highestBid().call();
+    let highestBid = await contract.methods.highestBid().call();
+    highestBid = await web3.utils.fromWei(highestBid);
     setHighestBid(highestBid);
     const highestBidder = await contract.methods.highestBidder().call();
     setHighestBidder(
@@ -81,73 +105,103 @@ export default function ContractInfo() {
     setAuctionEnded(auctionEnded);
   }
 
-  return (
-    <div className="mx-auto my-8 flex max-w-7xl flex-col items-center justify-center gap-8 rounded border px-16 py-8 text-center shadow">
-      <h1 className="text-4xl font-bold">Auction Info</h1>
+  async function placeBidHandler() {
+    try {
+      await contract.methods.bid().send({
+        from: account,
+        value: web3.utils.toWei(bid, "ether"),
+      });
+      setCounter(counter + 1);
+      toast("Bid was sent successfully!", {
+        position: toast.POSITION.BOTTOM_RIGHT,
+      });
+    } catch (err) {
+      toast.error(err, {
+        position: toast.POSITION.BOTTOM_RIGHT,
+      });
+    }
+  }
 
-      <div className="auction-info grid gap-4 md:grid-cols-2">
-        <div className="left-half flex flex-col gap-8">
-          <img
-            src={imageUrl}
-            alt="Image from a contract."
-            className="rounded border shadow-md"
-          />
-          {metamaskConnected ? (
+  function updateBid(event) {
+    setBid(event.target.value);
+    console.log(bid);
+  }
+
+  return (
+    <div className="mx-auto my-8 flex w-fit max-w-7xl flex-col items-center justify-center gap-8 rounded border px-16 py-8 text-center shadow-xl">
+      <h1 className="text-4xl font-bold">dAuction</h1>
+
+      {metamaskConnected ? (
+        <div className="auction-info grid gap-4 md:grid-cols-2">
+          <div className="left-half flex flex-col gap-8 rounded border p-4 shadow">
+            <img
+              src={imageUrl}
+              alt="Image from a contract."
+              className="rounded border"
+            />
             <InfoContainer
               heading={"Your balance:"}
               value={userBalance + " Eth."}
             />
-          ) : null}
-
-          <div className="interaction flex max-h-20 justify-center gap-8">
-            <input
-              type="text"
-              placeholder="Enter your bid in Eth."
-              className="rounded border px-2 shadow-md"
+            <InfoContainer
+              heading={"Current highest bid:"}
+              value={highestBid + " Eth."}
             />
-            <button
-              onClick={connectWalletHandler}
-              className="top-4 right-4 w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
-            >
-              Place a bid
-            </button>
+            <div className="interaction flex flex-wrap justify-center gap-8">
+              <input
+                type="text"
+                placeholder="Enter your bid in Eth."
+                className="rounded border px-4 py-2 shadow-md"
+                onChange={updateBid}
+              />
+              <button
+                onClick={placeBidHandler}
+                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
+              >
+                Place a bid
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 rounded border p-4 shadow">
+            <InfoContainer heading={"Title:"} value={title} />
+            <InfoContainer heading={"Beneficiary:"} value={beneficiary} />
+            <InfoContainer
+              heading={"Auction started on:"}
+              value={auctionStartDate}
+            />
+            <InfoContainer
+              heading={"Auction ends on:"}
+              value={auctionEndDate}
+            />
+            <InfoContainer
+              heading={"Auction status:"}
+              value={auctionEnded ? "Ended" : "Ongoing"}
+            />
+            <InfoContainer
+              heading={"Current highest bidder:"}
+              value={highestBidder}
+            />
+            <InfoContainer
+              heading={"Current highest bid:"}
+              value={highestBid + " Eth."}
+            />
+            <div className="flex flex-col gap-4 rounded border p-4 py-8 shadow">
+              <h2 className="text-2xl font-bold">Description:</h2>
+              <p>{description}</p>
+            </div>
           </div>
         </div>
-
+      ) : (
         <div className="flex flex-col gap-4 rounded border p-4 shadow">
-          <InfoContainer heading={"Title:"} value={title} />
-          <InfoContainer heading={"Beneficiary:"} value={beneficiary} />
-          <InfoContainer
-            heading={"Auction started on:"}
-            value={auctionStartDate}
-          />
-          <InfoContainer heading={"Auction ends on:"} value={auctionEndDate} />
-          <InfoContainer
-            heading={"Auction status:"}
-            value={auctionEnded ? "Ended" : "Ongoing"}
-          />
-          <InfoContainer
-            heading={"Current highest bidder:"}
-            value={highestBidder}
-          />
-          <InfoContainer
-            heading={"Current highest bid:"}
-            value={highestBid + " Eth."}
-          />
-          <div className="mt-4 flex flex-col gap-4">
-            <h2 className="font-bold">Description:</h2>
-            <p>{description}</p>
-          </div>
+          <img src={logo} alt="MetaMask logo." className="w-96" />
         </div>
-      </div>
+      )}
 
-      <div className="metamask-button-container">
-        <div className="error-message-container">
-          <p>{error}</p>
-        </div>
+      <div className="metamask-button-container flex flex-col items-center justify-center gap-4">
         <button
           onClick={connectWalletHandler}
-          className="top-4 right-4 w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
+          className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
         >
           Connect to MetaMask
         </button>
@@ -155,6 +209,8 @@ export default function ContractInfo() {
           Connection status: {metamaskConnected ? "Connected" : "Not Connected"}
         </p>
       </div>
+
+      <ToastContainer />
     </div>
   );
 }
