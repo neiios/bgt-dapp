@@ -207,7 +207,7 @@ export default function ContractInfo() {
               <button
                 onClick={placeBidHandler}
                 className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200 disabled:bg-neutral-200 disabled:opacity-50"
-                disabled={auctionEnded}
+                disabled={new Date() > auctionEndDate ? true : false}
               >
                 Place a bid
               </button>
