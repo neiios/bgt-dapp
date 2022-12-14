@@ -34,8 +34,6 @@ export default function ContractInfo() {
   const [contract, setContract] = useState(null);
   const [counter, setCounter] = useState(0);
 
-  const [auctionCanBeEnded, setAuctionCanBeEnded] = useState(false);
-
   async function connectWalletHandler() {
     // check if metamask is available
     if (typeof window.ethereum !== "undefined") {
@@ -64,61 +62,64 @@ export default function ContractInfo() {
     }
   }
 
-  async function updateThings() {
-    async function setBalance() {
-      let balanceInWei = await web3.eth.getBalance(account);
-      let balance = await web3.utils.fromWei(balanceInWei);
-      setUserBalance(parseFloat(balance).toFixed(3));
-    }
-    if (contract) {
-      getContractInfo();
-      if (Date.now() > auctionEndDate) {
-        setAuctionCanBeEnded(true);
-      }
-    }
-    if (contract && account) {
-      setMetamaskConnected(true);
-      setBalance();
-    }
-  }
-
   // useEffect(() => {}, [contract, account]);
   useEffect(() => {
+    let didCancel = false;
+
+    async function updateThings() {
+      async function setBalance() {
+        let balanceInWei = await web3.eth.getBalance(account);
+        let balance = await web3.utils.fromWei(balanceInWei);
+        setUserBalance(parseFloat(balance).toFixed(3));
+      }
+      if (contract) {
+        const title = await contract.methods.title().call();
+        const imageUrl = await contract.methods.url().call();
+        const description = await contract.methods.description().call();
+        const highestBid = await web3.utils.fromWei(
+          await contract.methods.highestBid().call()
+        );
+        const highestBidder = await contract.methods.highestBidder().call();
+        const beneficiary = await contract.methods.beneficiary().call();
+        const auctionStartDate = await contract.methods.blockTimestamp().call();
+        const auctionEndDate = await contract.methods.auctionEndTime().call();
+        const auctionEnded = await contract.methods.ended().call();
+
+        if (!didCancel) {
+          setTitle(title);
+          setDescription(description);
+          setImageUrl(imageUrl);
+          setHighestBid(highestBid);
+          setHighestBidder(
+            highestBidder.replace(highestBidder.substring(6, 34), " ... ")
+          );
+          setBeneficiary(
+            beneficiary.replace(beneficiary.substring(6, 34), " ... ")
+          );
+          setAuctionStartDate(convertUnixTime(auctionStartDate));
+          setAuctionEndDate(convertUnixTime(auctionEndDate));
+          setAuctionEnded(auctionEnded);
+        }
+      }
+      if (contract && account) {
+        setMetamaskConnected(true);
+        setBalance();
+      }
+    }
+
     updateThings();
+
+    return () => {
+      didCancel = true;
+    };
   }, [account, contract, counter]);
-
-  useEffect(() => {
-    updateThings();
-  }, []);
-
-  async function getContractInfo() {
-    const title = await contract.methods.title().call();
-    setTitle(title);
-    const description = await contract.methods.description().call();
-    setDescription(description);
-    const imageUrl = await contract.methods.url().call();
-    setImageUrl(imageUrl);
-
-    let highestBid = await contract.methods.highestBid().call();
-    highestBid = await web3.utils.fromWei(highestBid);
-    setHighestBid(highestBid);
-    const highestBidder = await contract.methods.highestBidder().call();
-    setHighestBidder(
-      highestBidder.replace(highestBidder.substring(6, 34), " ... ")
-    );
-
-    const beneficiary = await contract.methods.beneficiary().call();
-    setBeneficiary(beneficiary.replace(beneficiary.substring(6, 34), " ... "));
-    const auctionStartDate = await contract.methods.blockTimestamp().call();
-    setAuctionStartDate(convertUnixTime(auctionStartDate));
-    const auctionEndDate = await contract.methods.auctionEndTime().call();
-    setAuctionEndDate(convertUnixTime(auctionEndDate));
-    const auctionEnded = await contract.methods.ended().call();
-    setAuctionEnded(auctionEnded);
-  }
 
   async function placeBidHandler() {
     try {
+      if (bid <= highestBid) {
+        throw "The bid amount is less than current highest bid. Increase your bid.";
+      }
+
       await contract.methods.bid().send({
         from: account,
         value: web3.utils.toWei(bid, "ether"),
@@ -136,6 +137,9 @@ export default function ContractInfo() {
 
   async function endAuctionHandler() {
     try {
+      if (new Date() < auctionEndDate) {
+        throw "Auction is still ongoing. You can't end it now.";
+      }
       await contract.methods.auctionEnd().send({
         from: account,
         value: 0,
@@ -153,7 +157,6 @@ export default function ContractInfo() {
 
   function updateBid(event) {
     setBid(event.target.value);
-    console.log(bid);
   }
 
   return (
@@ -221,14 +224,12 @@ export default function ContractInfo() {
               <h2 className="text-2xl font-bold">Description:</h2>
               <p>{description}</p>
             </div>
-            {auctionCanBeEnded ? (
-              <button
-                onClick={endAuctionHandler}
-                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
-              >
-                End auction
-              </button>
-            ) : null}
+            <button
+              onClick={endAuctionHandler}
+              className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
+            >
+              End auction
+            </button>
           </div>
         </div>
       ) : (
