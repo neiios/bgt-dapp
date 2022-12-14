@@ -280,7 +280,7 @@ export default function ContractInfo() {
               onClick={connectWalletHandler}
               className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
             >
-              Connect to MetaMask
+              Connect to the contract
             </button>
             <p>
               Connection status:{" "}
