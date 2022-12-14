@@ -13,6 +13,7 @@ import "react-toastify/dist/ReactToastify.css";
 export default function ContractInfo() {
   // contract information
   const [metamaskConnected, setMetamaskConnected] = useState(false);
+  const [contractAddress, setContractAddress] = useState("");
 
   const [beneficiary, setBeneficiary] = useState("");
   const [auctionStartDate, setAuctionStartDate] = useState(new Date());
@@ -46,10 +47,11 @@ export default function ContractInfo() {
         const accounts = await web3.eth.getAccounts();
         setAccount(accounts[0]);
 
-        const c = createContract(
-          web3,
-          "0x2670e42c079e5BDCb46997A2276C0528F6533924"
-        );
+        const c = createContract(web3, contractAddress);
+        // const c = createContract(
+        //   web3,
+        //   "0x2670e42c079e5BDCb46997A2276C0528F6533924"
+        // );
         setContract(c);
       } catch (err) {
         toast.error(err, {
@@ -159,6 +161,10 @@ export default function ContractInfo() {
     setBid(event.target.value);
   }
 
+  function updateAddress(event) {
+    setContractAddress(event.target.value);
+  }
+
   return (
     <div className="mx-auto my-8 flex w-fit max-w-7xl flex-col items-center justify-center gap-8 rounded border px-16 py-8 text-center shadow-xl">
       <h1 className="text-4xl font-bold">dAuction</h1>
@@ -224,18 +230,35 @@ export default function ContractInfo() {
               <h2 className="text-2xl font-bold">Description:</h2>
               <p>{description}</p>
             </div>
-            <button
-              onClick={endAuctionHandler}
-              className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
-            >
-              End auction
-            </button>
+            <div className="flex gap-4">
+              <button
+                onClick={endAuctionHandler}
+                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
+              >
+                End auction
+              </button>
+              <button
+                onClick={() => window.location.reload(false)}
+                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
+              >
+                Disconnect
+              </button>
+            </div>
           </div>
         </div>
       ) : (
         <>
           <div className="flex flex-col gap-4 rounded border p-4 shadow">
             <img src={logo} alt="MetaMask logo." className="w-96" />
+          </div>
+
+          <div className="interaction flex flex-wrap justify-center gap-8">
+            <input
+              type="text"
+              placeholder="Enter the contract address"
+              className="rounded border px-4 py-2 shadow-md"
+              onChange={updateAddress}
+            />
           </div>
 
           <div className="metamask-button-container flex flex-col items-center justify-center gap-4">
