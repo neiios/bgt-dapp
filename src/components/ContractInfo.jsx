@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import Web3 from "web3";
-import createContract from "../helpers/loadContract";
 import InfoContainer from "./InfoContainer";
 import { convertUnixTime } from "../helpers/helpers";
 
+import contractJson from "../artifacts/OpenAuction.json";
 import logo from "../public/logo.svg";
 
 // toasts
@@ -47,7 +47,13 @@ export default function ContractInfo() {
         const accounts = await web3.eth.getAccounts();
         setAccount(accounts[0]);
 
-        const c = createContract(web3, contractAddress);
+        if (!/^0x[a-fA-F0-9]{40}$/.test(contractAddress))
+          throw "Contract address is not valid.";
+
+        const c = await new web3.eth.Contract(
+          contractJson.abi,
+          contractAddress
+        );
         // const c = createContract(
         //   web3,
         //   "0x2670e42c079e5BDCb46997A2276C0528F6533924"
@@ -60,60 +66,65 @@ export default function ContractInfo() {
       }
     } else {
       // metamask not installed
-      alert("Please install MetaMask!");
+      toast.error("Please install MetaMask!", {
+        position: toast.POSITION.BOTTOM_RIGHT,
+      });
     }
   }
 
-  // useEffect(() => {}, [contract, account]);
-  useEffect(() => {
-    let didCancel = false;
-
-    async function updateThings() {
-      async function setBalance() {
-        let balanceInWei = await web3.eth.getBalance(account);
-        let balance = await web3.utils.fromWei(balanceInWei);
-        setUserBalance(parseFloat(balance).toFixed(3));
-      }
-      if (contract) {
-        const title = await contract.methods.title().call();
-        const imageUrl = await contract.methods.url().call();
-        const description = await contract.methods.description().call();
-        const highestBid = await web3.utils.fromWei(
-          await contract.methods.highestBid().call()
-        );
-        const highestBidder = await contract.methods.highestBidder().call();
-        const beneficiary = await contract.methods.beneficiary().call();
-        const auctionStartDate = await contract.methods.blockTimestamp().call();
-        const auctionEndDate = await contract.methods.auctionEndTime().call();
-        const auctionEnded = await contract.methods.ended().call();
-
-        if (!didCancel) {
-          setTitle(title);
-          setDescription(description);
-          setImageUrl(imageUrl);
-          setHighestBid(highestBid);
-          setHighestBidder(
-            highestBidder.replace(highestBidder.substring(6, 34), " ... ")
-          );
-          setBeneficiary(
-            beneficiary.replace(beneficiary.substring(6, 34), " ... ")
-          );
-          setAuctionStartDate(convertUnixTime(auctionStartDate));
-          setAuctionEndDate(convertUnixTime(auctionEndDate));
-          setAuctionEnded(auctionEnded);
-        }
-      }
-      if (contract && account) {
-        setMetamaskConnected(true);
-        setBalance();
-      }
+  async function updateThings() {
+    async function setBalance() {
+      let balanceInWei = await web3.eth.getBalance(account);
+      let balance = await web3.utils.fromWei(balanceInWei);
+      setUserBalance(parseFloat(balance).toFixed(3));
     }
+    if (contract) {
+      const title = await contract.methods.title().call();
+      const imageUrl = await contract.methods.url().call();
+      const description = await contract.methods.description().call();
+      const highestBid = await web3.utils.fromWei(
+        await contract.methods.highestBid().call()
+      );
+      const highestBidder = await contract.methods.highestBidder().call();
+      const beneficiary = await contract.methods.beneficiary().call();
+      const auctionStartDate = await contract.methods.blockTimestamp().call();
+      const auctionEndDate = await contract.methods.auctionEndTime().call();
+      const auctionEnded = await contract.methods.ended().call();
 
-    updateThings();
+      setTitle(title);
+      setDescription(description);
+      setImageUrl(imageUrl);
+      setHighestBid(highestBid);
+      setHighestBidder(
+        highestBidder.replace(highestBidder.substring(6, 34), " ... ")
+      );
+      setBeneficiary(
+        beneficiary.replace(beneficiary.substring(6, 34), " ... ")
+      );
+      setAuctionStartDate(convertUnixTime(auctionStartDate));
+      setAuctionEndDate(convertUnixTime(auctionEndDate));
+      setAuctionEnded(auctionEnded);
+    }
+    if (contract && account) {
+      setMetamaskConnected(true);
+      setBalance();
+    }
+  }
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      updateThings();
+      console.log("run use effect");
+    }, 5000);
 
     return () => {
-      didCancel = true;
+      clearInterval(interval);
     };
+  }, []);
+
+  useEffect(() => {
+    updateThings();
+    console.log("run use effect");
   }, [account, contract, counter]);
 
   async function placeBidHandler() {
@@ -166,7 +177,7 @@ export default function ContractInfo() {
   }
 
   return (
-    <div className="mx-auto my-8 flex w-fit max-w-7xl flex-col items-center justify-center gap-8 rounded border px-16 py-8 text-center shadow-xl">
+    <div className="mx-auto my-8 flex w-fit max-w-7xl flex-col items-center justify-center gap-8 rounded border px-4 py-8 text-center shadow-xl md:px-16">
       <h1 className="text-4xl font-bold">dAuction</h1>
 
       {metamaskConnected ? (
@@ -189,12 +200,14 @@ export default function ContractInfo() {
               <input
                 type="text"
                 placeholder="Enter your bid in Eth."
-                className="rounded border px-4 py-2 shadow-md"
+                className="rounded border px-4 py-2 shadow-md disabled:bg-neutral-200 disabled:opacity-50"
                 onChange={updateBid}
+                disabled={new Date() > auctionEndDate ? true : false}
               />
               <button
                 onClick={placeBidHandler}
-                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
+                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200 disabled:bg-neutral-200 disabled:opacity-50"
+                disabled={auctionEnded}
               >
                 Place a bid
               </button>
@@ -233,13 +246,14 @@ export default function ContractInfo() {
             <div className="flex gap-4">
               <button
                 onClick={endAuctionHandler}
-                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
+                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200 disabled:bg-neutral-200 disabled:opacity-50"
+                disabled={auctionEnded}
               >
                 End auction
               </button>
               <button
                 onClick={() => window.location.reload(false)}
-                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
+                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200 disabled:bg-neutral-200 disabled:opacity-50"
               >
                 Disconnect
               </button>
