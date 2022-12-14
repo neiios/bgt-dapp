@@ -79,8 +79,7 @@ contract OpenAuction {
         ended = true;
         emit AuctionEnded(highestBidder, highestBid);
 
-        // beneficiary.transfer(highestBid);
-        // destroy the contract and send money to beneficiary
-        selfdestruct(beneficiary);
+        // transfer the bid to beneficiary
+        beneficiary.transfer(highestBid);
     }
 }

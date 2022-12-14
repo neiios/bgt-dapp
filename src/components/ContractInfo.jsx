@@ -15,8 +15,8 @@ export default function ContractInfo() {
   const [metamaskConnected, setMetamaskConnected] = useState(false);
 
   const [beneficiary, setBeneficiary] = useState("");
-  const [auctionStartDate, setAuctionStartDate] = useState("");
-  const [auctionEndDate, setAuctionEndDate] = useState("");
+  const [auctionStartDate, setAuctionStartDate] = useState(new Date());
+  const [auctionEndDate, setAuctionEndDate] = useState(new Date());
   const [auctionEnded, setAuctionEnded] = useState(false);
 
   const [highestBidder, setHighestBidder] = useState("");
@@ -34,6 +34,8 @@ export default function ContractInfo() {
   const [contract, setContract] = useState(null);
   const [counter, setCounter] = useState(0);
 
+  const [auctionCanBeEnded, setAuctionCanBeEnded] = useState(false);
+
   async function connectWalletHandler() {
     // check if metamask is available
     if (typeof window.ethereum !== "undefined") {
@@ -46,7 +48,10 @@ export default function ContractInfo() {
         const accounts = await web3.eth.getAccounts();
         setAccount(accounts[0]);
 
-        const c = createContract(web3);
+        const c = createContract(
+          web3,
+          "0x2670e42c079e5BDCb46997A2276C0528F6533924"
+        );
         setContract(c);
       } catch (err) {
         toast.error(err, {
@@ -67,6 +72,9 @@ export default function ContractInfo() {
     }
     if (contract) {
       getContractInfo();
+      if (Date.now() > auctionEndDate) {
+        setAuctionCanBeEnded(true);
+      }
     }
     if (contract && account) {
       setMetamaskConnected(true);
@@ -78,6 +86,10 @@ export default function ContractInfo() {
   useEffect(() => {
     updateThings();
   }, [account, contract, counter]);
+
+  useEffect(() => {
+    updateThings();
+  }, []);
 
   async function getContractInfo() {
     const title = await contract.methods.title().call();
@@ -113,6 +125,23 @@ export default function ContractInfo() {
       });
       setCounter(counter + 1);
       toast("Bid was sent successfully!", {
+        position: toast.POSITION.BOTTOM_RIGHT,
+      });
+    } catch (err) {
+      toast.error(err, {
+        position: toast.POSITION.BOTTOM_RIGHT,
+      });
+    }
+  }
+
+  async function endAuctionHandler() {
+    try {
+      await contract.methods.auctionEnd().send({
+        from: account,
+        value: 0,
+      });
+      setCounter(counter + 1);
+      toast("Auction ended!", {
         position: toast.POSITION.BOTTOM_RIGHT,
       });
     } catch (err) {
@@ -163,52 +192,65 @@ export default function ContractInfo() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-4 rounded border p-4 shadow">
-            <InfoContainer heading={"Title:"} value={title} />
-            <InfoContainer heading={"Beneficiary:"} value={beneficiary} />
-            <InfoContainer
-              heading={"Auction started on:"}
-              value={auctionStartDate}
-            />
-            <InfoContainer
-              heading={"Auction ends on:"}
-              value={auctionEndDate}
-            />
-            <InfoContainer
-              heading={"Auction status:"}
-              value={auctionEnded ? "Ended" : "Ongoing"}
-            />
-            <InfoContainer
-              heading={"Current highest bidder:"}
-              value={highestBidder}
-            />
-            <InfoContainer
-              heading={"Current highest bid:"}
-              value={highestBid + " Eth."}
-            />
+          <div className="flex flex-col items-center gap-4 rounded border p-4 shadow">
+            <div className="info-container flex flex-col gap-4 text-left">
+              <InfoContainer heading={"Title:"} value={title} />
+              <InfoContainer heading={"Beneficiary:"} value={beneficiary} />
+              <InfoContainer
+                heading={"Auction started on:"}
+                value={auctionStartDate.toISOString()}
+              />
+              <InfoContainer
+                heading={"Auction ends on:"}
+                value={auctionEndDate.toISOString()}
+              />
+              <InfoContainer
+                heading={"Auction status:"}
+                value={auctionEnded ? "Ended" : "Ongoing"}
+              />
+              <InfoContainer
+                heading={"Current highest bidder:"}
+                value={highestBidder}
+              />
+              <InfoContainer
+                heading={"Current highest bid:"}
+                value={highestBid + " Eth."}
+              />
+            </div>
             <div className="flex flex-col gap-4 rounded border p-4 py-8 shadow">
               <h2 className="text-2xl font-bold">Description:</h2>
               <p>{description}</p>
             </div>
+            {auctionCanBeEnded ? (
+              <button
+                onClick={endAuctionHandler}
+                className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
+              >
+                End auction
+              </button>
+            ) : null}
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-4 rounded border p-4 shadow">
-          <img src={logo} alt="MetaMask logo." className="w-96" />
-        </div>
-      )}
+        <>
+          <div className="flex flex-col gap-4 rounded border p-4 shadow">
+            <img src={logo} alt="MetaMask logo." className="w-96" />
+          </div>
 
-      <div className="metamask-button-container flex flex-col items-center justify-center gap-4">
-        <button
-          onClick={connectWalletHandler}
-          className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
-        >
-          Connect to MetaMask
-        </button>
-        <p>
-          Connection status: {metamaskConnected ? "Connected" : "Not Connected"}
-        </p>
-      </div>
+          <div className="metamask-button-container flex flex-col items-center justify-center gap-4">
+            <button
+              onClick={connectWalletHandler}
+              className="w-fit rounded border py-2 px-4 font-bold shadow hover:bg-neutral-200"
+            >
+              Connect to MetaMask
+            </button>
+            <p>
+              Connection status:{" "}
+              {metamaskConnected ? "Connected" : "Not Connected"}
+            </p>
+          </div>
+        </>
+      )}
 
       <ToastContainer />
     </div>
