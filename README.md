@@ -13,7 +13,8 @@
   - [x] Ethereum lokaliame tinkle
   - [x] Ethereum testiniame tinkle (Goerli)
 - [x] Naudojant Ethereum testinio tinklo Etherscan peržiūrėkite išmaniosios sutarties vykdymo "logus".
-  - https://goerli.etherscan.io/address/0x6347b6F82E4A127E2c9A84B05D31B9464923dFFF#code
+  - https://goerli.etherscan.io/address/0x2389CaBE728a4a8673B457B0CFB2FDf3B90C64c6 (better example)
+  - https://goerli.etherscan.io/address/0x6347b6F82E4A127E2c9A84B05D31B9464923dFFF
 - [x] Sukurkite decentralizuotos aplikacijos Front-End'ą
 
 ## Used libraries and tools

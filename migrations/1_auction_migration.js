@@ -13,8 +13,8 @@ module.exports = function (deployer, network, accounts) {
 
   deployer.deploy(
     OpenAuction,
-    60,
-    accounts[4],
+    3600,
+    "0xa31730190e91b4345fF0B6B06091468cf193C6CE",
     "Gedimino pilis",
     "Vilniaus aukštutinė pilis - gotikinė pilis Vilniuje, kurios liekanos stūkso Gedimino kalno aikštelėje. Papėdėje buvo LDK kunigaikščio Vytauto Didžiojo rezidencija, dabar - atstatyti Valdovų rūmai. Iš pagarbos Vilniaus įkūrėjui LDK kunigaikščiui Gediminui pilis pavadinta jo vardu. Pilis priklauso Vilniaus pilių rezervatui. Gedimino pilies bokštas - labiausiai turistų lankoma Vilniaus vieta. Skaičiuojama, kad per vienerius metus Gedimino pilyje apsilanko daugiau kaip 150 tūkst. žmonių. Lietuvos valstybės šimtmečio proga buvo pristatyta Aukštutinės pilies atkūrimo vizualizacija.",
     "https://upload.wikimedia.org/wikipedia/commons/9/9d/Gedimino_pilis_by_Augustas_Didzgalvis.jpg"
