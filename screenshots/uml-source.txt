@@ -1,0 +1,22 @@
+@startuml
+
+participant User
+participant "Web Frontend" as gui
+participant "Smart Contract" as sc
+
+activate User
+activate gui
+
+User ->> gui : Enter contract address
+
+activate sc
+gui -> sc : Get contract info
+gui ->> User : Display contract
+User -> gui : Make a bid
+gui -> sc : Update highest bid
+
+gui ->> sc : Close the auction
+sc -> sc : Transfer coins to beneficiary
+gui ->> User : Notify about auction end
+
+@enduml
