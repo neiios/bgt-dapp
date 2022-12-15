@@ -114,7 +114,6 @@ export default function ContractInfo() {
   useEffect(() => {
     const interval = setInterval(() => {
       updateThings();
-      console.log("run use effect");
     }, 5000);
 
     return () => {
@@ -124,7 +123,6 @@ export default function ContractInfo() {
 
   useEffect(() => {
     updateThings();
-    console.log("run use effect");
   }, [account, contract, counter]);
 
   async function placeBidHandler() {
